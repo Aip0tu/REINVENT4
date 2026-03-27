@@ -61,6 +61,7 @@ class SectionStage(GlobalConfig):
     chkpt_file: Optional[str] = None
     termination: str = "simple"
     min_steps: Optional[int] = Field(50, ge=0)
+    target_hits: Optional[int] = Field(None, ge=1)
     scoring: dict = Field(default_factory=dict)  # validate in Scorer
     diversity_filter: Optional[SectionDiversityFilter] = None
 

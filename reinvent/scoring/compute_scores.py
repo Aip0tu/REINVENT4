@@ -13,7 +13,10 @@ from reinvent_plugins.components.component_results import (
 )
 from .results import TransformResults
 
-from pumas.desirability.catalogue import desirability_catalogue
+try:
+    from pumas.desirability.catalogue import desirability_catalogue
+except ImportError:
+    desirability_catalogue = None
 
 logger = logging.getLogger(__name__)
 SCORE_FUNC = Callable[[List[str]], ComponentResults]

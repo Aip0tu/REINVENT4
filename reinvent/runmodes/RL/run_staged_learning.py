@@ -131,7 +131,12 @@ def run_staged_learning(
     if inception is None and model_type == "Reinvent":
         logger.warning("Inception disabled but may speed up convergence")
 
-    packages = create_packages(reward_strategy, stages, rdkit_smiles_flags2)
+    packages = create_packages(
+        reward_strategy,
+        stages,
+        rdkit_smiles_flags2,
+        parameters.batch_size,
+    )
 
     summary_csv_prefix = parameters.summary_csv_prefix
 

@@ -14,7 +14,6 @@ from typing import List, TYPE_CHECKING, Optional
 from abc import ABC, abstractmethod
 
 import torch
-from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 try:
@@ -30,6 +29,7 @@ from reinvent.runmodes.RL.data_classes import ModelState
 from reinvent.models.model_factory.sample_batch import SmilesState
 from reinvent.models.model_factory.model_adapter import SampledSequencesDTO
 from reinvent.utils import get_reporter
+from reinvent.runmodes.utils.tensorboard import SummaryWriter
 
 if TYPE_CHECKING:
     from reinvent.runmodes.samplers import Sampler
@@ -316,6 +316,7 @@ class Learning(ABC):
         mask_duplicates = self.sampled.states == SmilesState.DUPLICATE
         num_duplicate_smiles = sum(np.where(mask_duplicates, True, False))
         fract_duplicate_smiles = num_duplicate_smiles / len(mask_duplicates)
+        progress_pct = 100.0 * step_no / max(self.max_steps, 1)
 
         smilies = np.array(self.sampled.smilies)[mask_valid]
 
@@ -357,6 +358,12 @@ class Learning(ABC):
             start_time=self.start_time,
             n_steps=self.max_steps,
             mask_idx=mask_idx,
+        )
+
+        logger.info(
+            f"Stage {self.stage_no} progress {step_no}/{self.max_steps} "
+            f"({progress_pct:.1f}%) | mean score {mean_score:.4f} | "
+            f"valid {fract_valid_smiles:.1%} | duplicates {fract_duplicate_smiles:.1%}"
         )
 
         for reporter in self.reporters:

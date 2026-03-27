@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 def create_packages(
-    reward_strategy: RL.RLReward, stages: List[SectionStage], rdkit_smiles_flags: dict
+    reward_strategy: RL.RLReward,
+    stages: List[SectionStage],
+    rdkit_smiles_flags: dict,
+    batch_size: int,
 ) -> List[WorkPackage]:
     """Create work packages
 
@@ -40,7 +43,14 @@ def create_packages(
         max_steps = stage.max_steps
 
         terminator_param = stage.termination
-        terminator_name = terminator_param.lower().title()
+        terminator_lookup = terminator_param.lower().replace("-", "").replace("_", "")
+        terminator_names = {
+            "simple": "Simple",
+            "plateau": "Plateau",
+            "null": "Null",
+            "hitcount": "HitCount",
+        }
+        terminator_name = terminator_names.get(terminator_lookup, terminator_param)
 
         try:
             terminator: terminator_callable = getattr(terminators, f"{terminator_name}Terminator")
@@ -48,6 +58,12 @@ def create_packages(
             msg = f"Unknown termination criterion: {terminator_name}"
             logger.critical(msg)
             raise RuntimeError(msg)
+
+        if terminator_name == "HitCount":
+            target_hits = stage.target_hits or 1
+            terminator_instance = terminator(max_score, min_steps, target_hits, batch_size)
+        else:
+            terminator_instance = terminator(max_score, min_steps)
 
         diversity_filter = None
 
@@ -59,7 +75,7 @@ def create_packages(
                 scoring_function,
                 reward_strategy,
                 max_steps,
-                terminator(max_score, min_steps),
+                terminator_instance,
                 diversity_filter,
                 chkpt_filename,
             )

@@ -13,7 +13,18 @@ from rdkit.Chem import (
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem.rdmolops import RenumberAtoms
 from rdkit.DataStructs.cDataStructs import UIntSparseIntVect
-from molvs import Standardizer
+
+try:
+    from molvs import Standardizer
+except ImportError:
+    class Standardizer:
+        """Fallback MolVS-compatible standardizer using RDKit only."""
+
+        def __call__(self, mol: Mol) -> Mol:
+            return MolStandardize.rdMolStandardize.Cleanup(mol)
+
+        def charge_parent(self, mol: Mol) -> Mol:
+            return MolStandardize.rdMolStandardize.ChargeParent(mol)
 
 
 class Conversions:

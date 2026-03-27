@@ -9,8 +9,10 @@ import logging
 from .importer import get_registry
 from .transforms.transform import get_transform
 
-import pumas
-from pumas.desirability import desirability_catalogue
+try:
+    from pumas.desirability import desirability_catalogue
+except ImportError:
+    desirability_catalogue = None
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +88,8 @@ def get_components(components: list[dict[str, dict]], use_pumas: bool = False) -
 
                 try:
                     if use_pumas:
+                        if desirability_catalogue is None:
+                            raise RuntimeError("PUMAS scoring requested but pumas is not installed")
                         Transform = desirability_catalogue.get(transform_type)
                     else:
                         Transform, TransformParams = get_transform(transform_type)

@@ -4,9 +4,33 @@ Patch for Tensorboard add_histogram
 
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.tensorboard._convert_np import make_np
-from tensorboard.compat.proto.summary_pb2 import Summary, HistogramProto
+
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    from torch.utils.tensorboard._convert_np import make_np
+    from tensorboard.compat.proto.summary_pb2 import Summary, HistogramProto
+except ImportError:
+    class SummaryWriter:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __getattr__(self, name):
+            def _noop(*args, **kwargs):
+                return None
+
+            return _noop
+
+        def flush(self):
+            return None
+
+        def close(self):
+            return None
+
+    def make_np(values):
+        return np.asarray(values)
+
+    Summary = None
+    HistogramProto = None
 
 
 def add_histogram(
@@ -31,6 +55,9 @@ def add_histogram(
 
 
 def histogram(name, values, bins, max_bins=None):
+    if Summary is None or HistogramProto is None:
+        return None
+
     values = make_np(values)
     hist = make_histogram(values.astype(float), bins, max_bins)
     return Summary(value=[Summary.Value(tag=name, histo=hist)])

@@ -26,7 +26,10 @@ from .compute_scores import compute_transform
 from .results import ScoreResults
 from .validation import ScorerConfig
 
-from pumas.aggregation import aggregation_catalogue
+try:
+    from pumas.aggregation import aggregation_catalogue
+except ImportError:
+    aggregation_catalogue = None
 
 
 MAX_CPU_COUNT = 8
@@ -103,6 +106,8 @@ class Scorer:
 
         self.use_pumas = config.use_pumas
         if self.use_pumas:
+            if aggregation_catalogue is None:
+                raise RuntimeError("PUMAS scoring requested but pumas is not installed")
            
             # Need to handle mapping for back compatibility
             if config.type == 'custom_product':
@@ -145,31 +150,38 @@ class Scorer:
             smilies, valid_mask, connectivity_annotated_smiles
         )
 
-        if ntasks > 1:
-            nodes = min(MAX_CPU_COUNT, ntasks)
-
-            ctx = mp.get_context("spawn")
-            pool = ctx.Pool(nodes)
-
-            number_components = (
-                len(self.components.scorers)
-                + len(self.components.filters)
-                + len(self.components.penalties)
+        # Always use single process for FLAME components to avoid pickle errors
+        for component in self.components.scorers:
+            transform_result = compute_component_score(
+                component, fragments, smilies, valid_mask, self.use_pumas
             )
-            fragment_args = [fragments] * number_components
-            smilies_args = [smilies] * number_components
-            valid_mask_args = [valid_mask] * number_components
+            completed_components.append(transform_result)
 
-            completed_components = pool.starmap(
-                compute_component_score,
-                list(zip(self.components.scorers, fragment_args, smilies_args, valid_mask_args, self.use_pumas)),
-            )
-        else:
-            for component in self.components.scorers:
-                transform_result = compute_component_score(
-                    component, fragments, smilies, valid_mask, self.use_pumas
-                )
-                completed_components.append(transform_result)
+        #        if ntasks > 1:
+        #     nodes = min(MAX_CPU_COUNT, ntasks)
+
+        #     ctx = mp.get_context("spawn")
+        #     pool = ctx.Pool(nodes)
+
+        #     number_components = (
+        #         len(self.components.scorers)
+        #         + len(self.components.filters)
+        #         + len(self.components.penalties)
+        #     )
+        #     fragment_args = [fragments] * number_components
+        #     smilies_args = [smilies] * number_components
+        #     valid_mask_args = [valid_mask] * number_components
+
+        #     completed_components = pool.starmap(
+        #         compute_component_score,
+        #         list(zip(self.components.scorers, fragment_args, smilies_args, valid_mask_args, self.use_pumas)),
+        #     )
+        # else:
+        #     for component in self.components.scorers:
+        #         transform_result = compute_component_score(
+        #             component, fragments, smilies, valid_mask, self.use_pumas
+        #         )
+        #         completed_components.append(transform_result)
 
         scores_and_weights = []
 

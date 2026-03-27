@@ -7,12 +7,29 @@ from dataclasses import dataclass, field, asdict
 import time
 import copy
 import pickle
-import xxhash
+import hashlib
 import platform
 from uuid import UUID
 from typing import List, Tuple
 
-HASH_FORMAT = f"xxhash.xxh3_128_hex {xxhash.VERSION}"
+try:
+    import xxhash
+except ImportError:
+    xxhash = None
+
+
+def _hash_bytes(data: bytes) -> str:
+    if xxhash is not None:
+        return xxhash.xxh3_128_hexdigest(data)
+
+    return hashlib.sha256(data).hexdigest()
+
+
+if xxhash is not None:
+    HASH_FORMAT = f"xxhash.xxh3_128_hex {xxhash.VERSION}"
+else:
+    HASH_FORMAT = f"hashlib.sha256 {platform.python_version()}"
+
 MODEL_ID_FORMAT = f"uuid.uuid4 {platform.python_version()}"
 
 
@@ -82,7 +99,7 @@ def update_model_data(save_dict: dict, comment: str = "", write_update: bool = T
 
     data = pickle.dumps(save_dict)
 
-    metadata["hash_id"] = xxhash.xxh3_128_hexdigest(data)
+    metadata["hash_id"] = _hash_bytes(data)
     metadata["hash_id_format"] = HASH_FORMAT
 
     return _set_network(save_dict, network)
@@ -119,7 +136,7 @@ def check_valid_hash(
         ref[k] = ref[k].cpu().numpy()
 
     data = pickle.dumps(save_dict)
-    check_hash_id = xxhash.xxh3_128_hexdigest(data)
+    check_hash_id = _hash_bytes(data)
 
     return curr_hash_id == check_hash_id
 

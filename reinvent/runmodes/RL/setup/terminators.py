@@ -49,6 +49,36 @@ class SimpleTerminator:
         return False
 
 
+class HitCountTerminator:
+    """Terminate when a batch contains at least a target number of hits."""
+
+    def __init__(
+        self,
+        max_score: float,
+        min_steps: float,
+        target_hits: int = 1,
+        batch_size: int = 1,
+    ):
+        self.min_steps = min_steps
+        self.target_hits = target_hits
+        self.batch_size = max(batch_size, 1)
+
+    def __call__(self, score: int, step: int) -> bool:
+        if step <= self.min_steps:
+            return False
+
+        hits = int(np.rint(score * self.batch_size))
+
+        if hits >= self.target_hits:
+            logger.info(
+                f"Hit-count termination reached with {hits} hit(s) in the current batch "
+                f"(target: {self.target_hits})"
+            )
+            return True
+
+        return False
+
+
 MAX_GRAD = 0.001  # FIXME: arbitray
 
 

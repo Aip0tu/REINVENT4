@@ -8,7 +8,6 @@ the negative log likelihood if requested.
 __all__ = ["run_sampling"]
 import logging
 
-from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import torch
 
@@ -22,6 +21,7 @@ from reinvent.runmodes.setup_sampler import setup_sampler
 from reinvent.models.model_factory.sample_batch import SampleBatch, SmilesState
 from reinvent.chemistry import conversions
 from reinvent.scoring import Scorer
+from reinvent.runmodes.utils.tensorboard import SummaryWriter
 from reinvent.runmodes.samplers.pepinvent import PepinventSampler
 from reinvent_plugins.normalizers.rdkit_smiles import normalize
 from .validation import SamplingConfig
